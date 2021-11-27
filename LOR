@@ -1,0 +1,51 @@
+% defining the state space of the system
+A = -0.5;
+B = 150;
+% defining the optimal parameters
+R = [10^2 10^3 10^4 10^3];
+Q = 1;
+S = [0 0 0 0.19];
+
+T=1;
+t = linspace(0, 1, 100);
+for k=1:numel(R)
+    % Hmalitonia matrix
+    H = [-0.5 -150^2/R(k);-1 0.5];
+    % computing the eigen values and vectores
+    [U, L] = eig(H);
+    
+    U_11 = U(1, 1);
+    U_12 = U(1, 2);
+    U_21 = U(2, 1);
+    U_22 = U(2, 2);
+    
+    L_stable = L(1, 1);
+    L_unstable = L(2, 2);
+    
+    % computing G pararmeter
+    G = -(U_22 - S(k)*U_12)^-1 *(U_21 - S(k)*U_11);
+    % computing P parameter
+    P = (U_21 + U_22.*exp(-L_unstable.*(T - t))*G.*exp(L_stable.*(T - t))).*(U_11 + U_12.*exp(-L_unstable.*(T - t))*G.*exp(L_stable.*(T - t))).^-1;
+    % computing optimal state feedback
+    f = -R(k)^-1*B.'*P;
+    % computing omega
+    omega = exp((A - B.*R(k)^-1*B.*P).*t);
+    
+    % plotting
+    ax1 = subplot(2, 1, 1);
+    plot(ax1, t, f)
+    title("Optima state feedback gain")
+    xlabel("time(s)")
+    grid on
+    hold on
+    
+    ax2 = subplot(2, 1, 2);
+    plot(ax2, t, omega)
+    title("\omega (t)")
+    xlabel("time(s)")
+    grid on
+    hold on
+    
+end
+legend(ax1,"rho=100, s=0","rho=1000, s=0", "rho=10000, s=0", "rho=1000, s=0.19"  )
+legend(ax2,"rho=100, s=0","rho=1000, s=0", "rho=10000, s=0", "rho=1000, s=0.19"  )
