@@ -1,0 +1,39 @@
+% defining the system state space model
+A = [0 1 0; 0 -0.875 -20; 0 0 -50];
+B = [0; 0; 50];
+C = [1 0 0];
+
+% Desighn parameters
+Q = C.'*C;
+rho = [0.01 1 100];
+f1 = figure;
+f2 = figure;
+f3 = figure;
+for k=1:numel(rho)
+    % computing optimal state feebadback gain
+    [K,S,CLP] = lqr(A,B, Q, rho(k));
+    F = -K
+    P = S;
+    
+    % Loop transfer function of optimaly regulated plant
+    [num, den] = ss2tf(A, B, -F, 0);
+    sys = tf(num, den);
+    [Gm,Pm,Wcg,Wcp] = margin(sys); 
+    Gm
+    Pm
+    figure(f1)
+    margin(sys)
+    grid on
+    hold on
+    
+    figure(f2)
+    nyquist(sys)
+    hold on 
+    grid on
+    
+    figure(f3)
+    step(sys/(1 + sys))
+    hold on 
+    grid on
+end
+legend("\rho=0.01", "\rho=1", "\rho=100")
