@@ -1,0 +1,67 @@
+% defining the state space of the system
+A = [0 1; -3 -4];
+B = [0; 1];
+C = [2 1];
+D = 0; 
+
+% Defining the optimal tuning parameters
+Q = [3 0; 0 0.1];
+R = 0.001;
+
+% defining the estimator parameters
+Qe = [35; -61]*[35 -61];
+Re = 1;
+
+%  desighing the controller state feedback gain matrix
+F = lqr(A, B, Q, R);
+
+% Desighning the estimator gaian
+Fe = lqr(A.', C.', Qe, Re);
+Fe = Fe.';
+
+% plant transfer function
+[num, den] = ss2tf(A, B, C, D);
+G = tf(num,den)
+
+% Controller transfer function
+[num, den] = ss2tf(A - B*F - Fe*C, Fe, -F, 0);
+K = tf(num, den)
+
+% Loop transfer function of the system
+L2 = -K*G
+
+% frequenecy response
+f1 = figure;
+margin(L2)
+
+% robust recoverly 
+sigma = [500, 10000, 100000];
+f2 = figure;
+ for k=1:numel(sigma)
+     Qe = [35; -61]* [35 -61] + sigma(k).*B*B.';
+     Re = 1;
+     
+     %  desighing the controller state feedback gain matrix
+     F = lqr(A, B, Q, R);
+
+     % Desighning the estimator gaian
+     Fe = lqr(A.', C.', Qe, Re);
+     Fe = Fe.'
+
+     % plant transfer function
+     [num, den] = ss2tf(A, B, C, D);
+     G = tf(num,den);
+
+     % Controller transfer function
+     [num, den] = ss2tf(A - B*F - Fe*C, Fe, -F, 0);
+     K = tf(num, den);
+
+     % Loop transfer function of the system
+     L2 = -K*G;
+     
+     margin(L2)
+     hold on
+     grid on
+     
+ end
+ legend("\sigma=500", "\sigma=10000", "\sigma=100000")
