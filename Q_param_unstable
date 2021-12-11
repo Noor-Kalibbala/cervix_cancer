@@ -1,0 +1,101 @@
+% chaging the transfer function of the plant ot statespace
+num = 1;
+den = [1 -3 2];
+% plant transfer function
+P = tf(num, den)
+[A, B, C, E] = tf2ss(num, den);
+
+% using pole placement method to obatin F and H
+J1 = [-10 -20];
+F = place(A, B, J1);
+J2 = [-40 -50];
+H = place(A.', C.', J2);
+H = H.';
+
+% defining A0 and A0_tilde
+A0 = A - B*F;
+A0_tilde = A- H*C;
+
+% The double cofactorization of the system
+[num, den] = ss2tf(A0_tilde, H, F, 0);
+xp = tf(num, den);
+
+[num, den] = ss2tf(A0_tilde,B- H*E, F, 1);
+yp = tf(num, den);
+
+[num, den] = ss2tf(A0,H, F, 0);
+xp_tilde = tf(num, den);
+
+[num, den] = ss2tf(A0, H ,C-E*F, 1);
+yp_tilde = tf(num, den);
+
+[num, den] = ss2tf(A0, B ,C-E*F, E);
+np = tf(num, den);
+
+[num, den] = ss2tf(A0, B ,-F, 1);
+dp = tf(num, den);
+
+[num, den] = ss2tf(A0_tilde, B-H*E ,C, E);
+np_tilde = tf(num, den);
+
+[num, den] = ss2tf(A0_tilde, H ,-C, 1);
+dp_tilde = tf(num, den);
+
+% controller requirements 
+q0 = evalfr(yp, 0)/evalfr(np_tilde, 0);
+
+q_wj = evalfr(yp, 10j)/evalfr(np_tilde, 10j);
+
+% computing the coeficients
+syms a1 a2 a3 s
+% defining the q parametr
+q = (a1*s^2 + a2*s + a3)/(s+20)^2;
+eqn1 = subs(q, s, 0) == q0;
+eqn2 = subs(q, s, 10j) == q_wj;
+eqns = [eqn1 eqn2];
+vars = [a1 a2 a3];
+[a1, a2, a3] = solve(eqns, vars, "Real", true);
+
+% transfer function of q
+num = [a1 a3 a3];
+num = double(num);
+% (s + 20)^2
+den = [1 40 400];
+q = tf(num, den)
+
+% changing Q into state space
+[Aq, Bq, Cq, Dq] = tf2ss(num, den);
+
+% defining the controller state space
+Ak = vertcat(horzcat(A - B*F - H*C + B*Dq*C, -B*Cq), horzcat(-Bq*C, Aq));
+Bk = vertcat( H - B*Dq, Bq);
+Ck = horzcat(F - Dq*C, Cq);
+Dk = Dq;
+
+% controller transfer function
+[num, den] = ss2tf(Ak, Bk, Ck, Dk);
+Controller = tf(num, den)
+
+% response due to step input
+f = figure;
+sys = P*Controller_tf/(1 + P*Controller_tf);
+step(sys)
+grid on
+
+% response due to step disturbnace
+f1 = figure;
+sys = 1/(1 + P*Controller_tf);
+step(sys)
+grid on
+
+% response due to sinusoidal response
+f2 = figure;
+sys = 1/(1 + P*Controller_tf);
+t = linspace(0, 1, 100);
+u = sin(10*t);
+y = lsim(sys, u, t);
+plot(t, y)
+ylabel('amplitude')
+xlabel('time(sec)')
+title('System response for a sinusoidal')
+grid on
