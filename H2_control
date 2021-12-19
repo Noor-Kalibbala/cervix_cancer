@@ -1,0 +1,56 @@
+% define the stste representation of the system G
+A = [0 0 1.132 0 -1;
+     0 -0.0538 -0.1712 0 0.0705;
+     0 0 0 1 0;
+     0 0.0485 0 -0.8556 -1.013;
+     0 -0.2909 0 1.0532 -0.6859];
+ B = [0 0 0; -0.12 1 0; 0 0 0; 4.419 0 -1.665; 1.575 0 -0.0732];
+ C = [1 0 0 0 0; 0 1 0 0 0;0 0 1 0 0];
+ D = [0 0 0; 0 0 0; 0 0 0];
+ 
+ % number of system inputs, states and outputs 
+ size_A = size(A);
+ size_B = size(B);
+ size_C = size(C);
+ n = size_A(1);
+ m = size_B(2);
+ p = size_C(1);
+ 
+ % setting weighting parameters Q, Qe R and Re
+ Q = C.'*C;
+ Qe = B*B.';
+ R = 1*10^-5*eye(m);
+ Re = 1*10^-5*eye(p);
+ 
+ % Generalized plant
+ Ap = A;
+ Bp = horzcat(sqrtm(Qe), zeros(n, p), B);
+ Cp = vertcat(sqrt(Q), zeros(m, n), -C);
+ Dp = vertcat(horzcat(zeros(n+m, n+p), vertcat(zeros(n, m), sqrtm(R))), horzcat(horzcat(zeros(p, n), -sqrtm(Re)), zeros(p, m)));
+ 
+ P = ss(Ap, Bp, Cp, Dp);
+ [K, CL, gamma] = h2syn(P, p, m);
+ display(gamma)
+ 
+ % plant system
+ G = ss(A, B, C, D);
+ % loop transfer function
+ L = G*K;
+ % sensitivity
+ S = inv(eye(3, 3) + tf(L));
+ % complemetary sensitivity
+ T = eye(3, 3) - S;
+ 
+ % step functions
+ stepplot(T(1, 1), T(2, 1), T(3, 1))
+ grid on
+ legend("spoiler angle", "forward acceleration", "elevator angle")
+ 
+ opts1 = sigmaoptions;
+ opts1.Grid = 'on';
+ opts1.Title.String = 'Singular Value Plot of T(s)';
+ sigma(T, opts1)
+ 
+ H2_norm = norm(T,2)
+ 
+ Hinf_norm = norm(T, inf)
