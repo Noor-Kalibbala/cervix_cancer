@@ -32,3 +32,10 @@ P = U_21*inv(U_11);
 % optimal state feedback
 f = -R^-1*B.'*P;
 f = real(f)
+
+% method two for SISO
+% decomposing the matrix
+[U, L] = eig(H);
+stable_eigh_values = L(L<0);
+stable_eigh_values = stable_eigh_values.';
+f = -place(A, B, stable_eigh_values)
