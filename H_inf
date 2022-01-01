@@ -1,0 +1,31 @@
+% Plant transfer function function
+G1 = tf(200, [10 1]);
+G2 = tf(1, [0.05 1]);
+G = G1*G2^2;
+ind = [1 10];
+for k=1:numel(ind)
+    % Disturbance model
+    Gd = ind(k)*tf(10,[10 1]);
+
+    % getting the gain crossover frequncey
+    wc = getGainCrossover(Gd, 1);
+
+    % since wb < wc < w180, the band width will be set to wc
+    wb = wc;
+
+    % mixed sesitivity
+    wS = makeweight(1e3,wb,1e-4);
+    wKS = makeweight(0.5,[500 1e2],1e4,0,2);
+
+    % H inf controller
+    [K, CL, gamma] = mixsyn(G, wS, wKS);
+
+    L = G*K;
+    S = inv(1 + tf(L));
+    T = 1 - S;
+    step(T)
+    stepinfo(T)
+    grid on
+    hold on
+
+end
