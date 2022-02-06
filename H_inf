@@ -1,31 +1,68 @@
-% Plant transfer function function
-G1 = tf(200, [10 1]);
-G2 = tf(1, [0.05 1]);
-G = G1*G2^2;
-ind = [1 10];
-for k=1:numel(ind)
-    % Disturbance model
-    Gd = ind(k)*tf(10,[10 1]);
+% define the stste representation of the system G
+A = [0 0 1.132 0 -1;
+     0 -0.0538 -0.1712 0 0.0705;
+     0 0 0 1 0;
+     0 0.0485 0 -0.8556 -1.013;
+     0 -0.2909 0 1.0532 -0.6859];
+ B = [0 0 0; -0.12 1 0; 0 0 0; 4.419 0 -1.665; 1.575 0 -0.0732];
+ C = [1 0 0 0 0; 0 1 0 0 0;0 0 1 0 0];
+ D = [0 0 0; 0 0 0; 0 0 0];
+ 
+ % plant P
+ P = ss(A, B, C, D);
+ 
 
-    % getting the gain crossover frequncey
-    wc = getGainCrossover(Gd, 1);
+% setting the weights
+c = 1e3;
+ws = 1e-4;
+Ms = 1e-4;
+wk = 1e2;
+Mk = 0.5*1e2;
 
-    % since wb < wc < w180, the band width will be set to wc
-    wb = wc;
+wS = tf(ws/Ms, [1 ws]);
+wKS = (c/Mk)*tf([1 wk],[1 c*wk]);
 
-    % mixed sesitivity
-    wS = makeweight(1e3,wb,1e-4);
-    wKS = makeweight(0.5,[500 1e2],1e4,0,2);
+% desighning  H inf controller for given weights
+ [K, CL, gamma] = mixsyn(P, wS, wKS);
+ gamma
+ 
 
-    % H inf controller
-    [K, CL, gamma] = mixsyn(G, wS, wKS);
+% loop transfer function
+L = P*K;
+% sensitivity
+S = inv(eye(3, 3) + tf(L));
+% complemetary sensitivity
+T = eye(3, 3) - S;
 
-    L = G*K;
-    S = inv(1 + tf(L));
-    T = 1 - S;
-    step(T)
-    stepinfo(T)
-    grid on
-    hold on
+f1 = figure;
+% response  to step input
+stepplot(T(1, 1), T(2, 1), T(3, 1))
+grid on
+legend("y1", "y2", "y3")
 
-end
+f2 = figure;
+% control sensitivity
+Ks = tf(K)*S;
+ 
+stepplot(Ks(1, 1), Ks(2, 1), Ks(3, 1))
+grid on
+legend("u1", "u2", "u3")
+
+% singular values of S(s)
+f3 = figure;
+opts1 = sigmaoptions;
+opts1.Grid = 'on';
+opts1.Title.String = 'Singular Value Plot of S(s)';
+sigma(S, 1/wS, opts1)
+legend("\sigma", "1/Ws")
+
+f4 = figure;
+opts1 = sigmaoptions;
+opts1.Grid = 'on';
+opts1.Title.String = 'Singular Value Plot of KS(s)';
+sigma(Ks, 1/wKS, opts1)
+legend("\sigma", "1/Wk")
+
+
+
+ 
