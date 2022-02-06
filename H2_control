@@ -19,7 +19,7 @@ A = [0 0 1.132 0 -1;
  % setting weighting parameters Q, Qe R and Re
  Q = C.'*C;
  Qe = B*B.';
- R = 1*10^-5*eye(m);
+ R = 1*10^-1*eye(m);
  Re = 1*10^-5*eye(p);
  
  % Generalized plant
@@ -41,10 +41,21 @@ A = [0 0 1.132 0 -1;
  % complemetary sensitivity
  T = eye(3, 3) - S;
  
- % step functions
+ % response to step input
+ f1 = figure;
  stepplot(T(1, 1), T(2, 1), T(3, 1))
  grid on
  legend("spoiler angle", "forward acceleration", "elevator angle")
+ 
+ % control effort 
+ f2 = figure;
+ % control sensitivity
+ Ks = tf(K)*S;
+ 
+ stepplot(Ks(1, 1), Ks(2, 1), Ks(3, 1))
+ grid on
+ legend("spoiler angle", "forward acceleration", "elevator angle")
+
  
  opts1 = sigmaoptions;
  opts1.Grid = 'on';
