@@ -1,0 +1,61 @@
+% chaging the transfer function of the plant ot statespace
+ num = [1 0 1];
+ den = [1 4 4];
+ % plant transfer function
+ P = tf(num, den)
+ 
+
+ % controller requirements 
+ q0 = 1/evalfr(P, 0);
+
+ % changing the plant into symbolic function
+ syms s
+ P_symb = poly2sym(num, s)/ poly2sym(den, s);
+ 
+ % computing the coeficients
+ syms a1 a2 a3 
+ % defining the q parametr
+ q = (a1*s^2 + a2*s + a3)/(s+20)^2;
+ eqn1 = subs(q, s, 0) == q0;
+ eqn2 = subs(diff(P_symb*q), s, 0) == 0;
+ 
+ eqns = [eqn1 eqn2];
+ vars = [a1 a2 a3];
+ [a1, a2, a3] = solve(eqns, vars, "Real", true);
+ 
+ % transfer function of q
+ num = [a1 a2 a3];
+ 
+ num = double(num);
+ % (s + 20)^2
+ den = [1 40 400];
+ q = tf(num, den)
+
+ % transfer function of the controller for stable plant
+Controller_tf =q/ (1 - P*q)
+Controller_tf = minreal(Controller_tf)
+
+% system transfer function when distbance is zero equals to PC/1+PC
+f = figure;
+sys = P*Controller_tf/(1 + P*Controller_tf);
+aug_sys = series(tf(1, [1 0]), sys);
+step(sys)
+grid on
+
+% step disturbace reponse
+f1 = figure;
+sys = 1/(1 + P*Controller_tf);
+step(sys)
+grid on
+
+%system transfer function with sinosoidal disturbace equa;s to 1/1+PC
+f2 = figure;
+sys = 1/(1 + P*Controller_tf);
+t = linspace(0, 10, 1000);
+u = sin(10*t);
+y = lsim(sys, u, t);
+plot(t, y)
+ylabel('amplitude')
+xlabel('time(sec)')
+title('System response for a sinusoidal')
+grid on
