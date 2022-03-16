@@ -1,0 +1,48 @@
+A = [0 0 1 0;
+     0 0 0 1;
+     -1 1 0 0;
+     1 -1 0 0];
+B = [0; 0; 1; 0];
+C = [0 1 0 0];
+D = 0;
+
+size_A = size(A);
+size_B = size(B);
+size_C = size(C);
+
+n = size_A(1);
+m = size_B(2);
+p = size_C(1);
+
+Q = eye(n);
+Qe = eye(n);
+R = 0.01;
+Re = 0.001;
+
+Bw = [zeros(n, p), sqrtm(Qe), zeros(n, p)];
+Cz = [sqrtm(Q); zeros(m, n)];
+Cv = -C;
+Dzw = zeros(n+m, p+n+p);
+Dzu = [zeros(n, m); sqrtm(R)];
+Dvw = [eye(p, p) zeros(p, n) -Re];
+Dvu = zeros(p, m);
+
+Ap = A;
+Bp = [Bw B];
+Cp = [Cz; Cv];
+Dp = [Dzw Dzu; Dvw Dvu];
+
+P = ss(Ap, Bp, Cp, Dp);
+
+[K, CL, gamma] = h2syn(P,p, m);
+display(gamma)
+
+G = ss(A, B, C, D);
+
+L = G*K;
+
+S = inv(1 + tf(L));
+T = 1 - S;
+
+step(T)
+grid on
